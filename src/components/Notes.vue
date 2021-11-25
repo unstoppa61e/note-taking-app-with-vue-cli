@@ -7,18 +7,20 @@
     </div>
     <span v-if="!isAdding" @click="prepareAdding" class="add">+</span>
   </div>
-  <textarea v-if="isAdding || isNoteSelected()" v-model="tempNote"></textarea>
+  <textarea v-if="isAdding || isNoteSelected" v-model="tempNote"></textarea>
   <div v-if="isAdding">
     <div @click="addNote" class="button">追加</div>
     <div @click="cancelAdding" class="button red">取消</div>
   </div>
-  <div v-if="isNoteSelected()">
+  <div v-else-if="isNoteSelected">
     <div @click="updateNote" class="button">編集</div>
     <div @click="deleteNote" class="button red">削除</div>
   </div>
 </template>
 
 <script>
+const localStorageName = 'notes'
+
 export default {
   data() {
     return {
@@ -28,22 +30,17 @@ export default {
       tempNote: ''
     }
   },
-  watch: {
-    notes: {
-      handler: function () {
-        localStorage.setItem('notes', JSON.stringify(this.notes))
-      },
-      deep: true
-    }
-  },
   methods: {
     getNoteHeader (index) {
       const header = this.notes[index].split("\n")[0]
       const headerLengthLimit = 20
       return header.length > headerLengthLimit ? header.slice(0, headerLengthLimit) + '...' : header
     },
-    prepareAdding () {
+    resetTempNote () {
       this.tempNote = ''
+    },
+    prepareAdding () {
+      this.resetTempNote()
       this.selectedNoteIndex = null
       this.isAdding = true
     },
@@ -52,10 +49,11 @@ export default {
         return
       }
       this.notes.push(this.tempNote)
-      this.tempNote = ''
+      localStorage.setItem(localStorageName, JSON.stringify(this.notes))
+      this.resetTempNote()
     },
     cancelAdding () {
-      this.tempNote = ''
+      this.resetTempNote()
       this.isAdding = false
     },
     selectNote (index) {
@@ -71,18 +69,22 @@ export default {
         return
       }
       this.notes[this.selectedNoteIndex] = this.tempNote
+      localStorage.setItem(localStorageName, JSON.stringify(this.notes))
     },
     deleteNote () {
       this.notes.splice(this.selectedNoteIndex, 1)
-      this.tempNote = ''
+      localStorage.setItem(localStorageName, JSON.stringify(this.notes))
+      this.resetTempNote()
       this.selectedNoteIndex = null
-    },
+    }
+  },
+  mounted () {
+    this.notes = JSON.parse(localStorage.getItem(localStorageName)) || []
+  },
+  computed: {
     isNoteSelected () {
       return this.selectedNoteIndex !== null
     }
-  },
-  mounted: function () {
-    this.notes = JSON.parse(localStorage.getItem('notes')) || []
   }
 }
 </script>
@@ -90,18 +92,17 @@ export default {
 <style>
   .notes {
     text-align: left;
-    margin-left: 20px;
   }
   .note {
     display: inline-block;
-    margin: 20px 0 0 0;
+    margin-top: 20px;
     padding: 8px 20px;
     background: #eee;
-    border-radius: 20px;
+    border-radius: 4px;
     font-size: 20px;
     letter-spacing: 2px;
     font-weight: bold;
-    color: #777;
+    color: #444;
     cursor: pointer;
   }
   .add {
@@ -112,11 +113,10 @@ export default {
   }
   .button {
     display: inline-block;
-    margin-right: 20px;
+    margin: 20px 20px 0 0;
+    padding: 10px 20px;
     background: #0b6dff;
     border: 0;
-    padding: 10px 20px;
-    margin-top: 20px;
     color: white;
     border-radius: 20px;
     cursor: pointer;
@@ -130,7 +130,8 @@ export default {
   }
   textarea {
     font-size: 20px;
-    margin: 30px 0 0 20px;
+    margin-top: 30px;
+    border-radius: 4px;
     height: 100px;
     width: 80%;
   }
